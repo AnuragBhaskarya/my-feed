@@ -1,0 +1,16 @@
+# Instagram Video Downloader Bot Requirements
+
+# Telegram Bot API
+python-telegram-bot>=20.0
+
+# Video downloading
+yt-dlp>=2023.1.6
+
+# Dropbox API
+dropbox>=11.36.0
+
+# HTTP requests
+requests>=2.28.0
+
+# Additional utilities
+pathlib2>=2.3.7; python_version < "3.6"

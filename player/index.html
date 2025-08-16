@@ -1,0 +1,1468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="robots" content="noindex,nofollow" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+      
+    <!-- PWA Meta Tags for iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="GodFeed">
+    
+    <!-- Theme color -->
+    <meta name="theme-color" content="#ff6b35">
+    <meta name="msapplication-navbutton-color" content="#ff6b35">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        
+    <!-- Icons for home screen -->
+    <link rel="apple-touch-icon" sizes="180x180" href="krishna_icon.jpg">
+    <link rel="icon" type="image/png" sizes="32x32" href="krishna_icon.jpg">
+    <link rel="icon" type="image/png" sizes="16x16" href="krishna_icon.jpg">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/src/menifest.json">
+    
+    <!-- Viewport for better mobile experience -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <meta charset="UTF-8" />
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="God Feed" />
+    <meta property="og:description" content="Sometimes We Need It" />
+    <meta property="og:image" content="krishna_icon.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:alt" content="God Feed" />
+    <meta property="og:type" content="website" />
+    
+    <!-- Twitter Card Meta Tags -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="krishna_icon.jpg" />
+  <meta name="twitter:image:alt" content="God Feed" />
+  <meta name="twitter:title" content="God Feed" />
+  <meta name="twitter:description" content="Sometimes We Need It" />
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <title>Video Feed</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+      -webkit-tap-highlight-color: transparent;
+    }
+    /* Hide scrollbar for Chrome, Safari, Edge */
+    #feed::-webkit-scrollbar {
+      display: none;
+    }
+    
+    /* Hide scrollbar for Firefox */
+    #feed {
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE and old Edge */
+    }
+    #feed {
+      height: 100vh;
+      height: 100dvh;
+      overflow-y: auto;
+      scroll-snap-type: y mandatory;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
+      scroll-behavior: smooth;
+    }
+    .video-container {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      height: 100dvh;
+      scroll-snap-align: start;
+      scroll-snap-stop: always;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000; 
+    }
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+      pointer-events: none;
+    }
+    /* Tap area for mute/unmute */
+    .tap-area {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      cursor: pointer;
+    }
+    /* Mute/Unmute icon popup */
+    .sound-indicator {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80px;
+      height: 80px;
+      background: rgba(0, 0, 0, 0.7);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 0;
+      z-index: 20;
+      backdrop-filter: blur(10px);
+    }
+    .sound-indicator.show {
+      animation: popIn 0.8s ease-out;
+    }
+    @keyframes popIn {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.5);
+      }
+      40% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.1);
+      }
+      60% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1);
+      }
+    }
+    .sound-icon {
+      width: 40px;
+      height: 40px;
+      fill: white;
+    }
+    /* Loading spinner */
+    .loader {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255, 255, 255, 0.1);
+      border-top-color: rgba(255, 255, 255, 0.8);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      z-index: 5;
+      display: none;
+    }
+    .loading .loader {
+      display: block;
+    }
+    @keyframes spin {
+      to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    /* FIXED: Always visible enhanced timeline scrubber */
+    .timeline-container {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 50px;
+      background: linear-gradient(transparent, rgba(0,0,0,0.6));
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      z-index: 15;
+      opacity: 1; /* ALWAYS VISIBLE */
+      pointer-events: auto;
+    }
+    .timeline-track {
+      position: relative;
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .timeline-progress {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 3px;
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+    .timeline-thumb {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 14px;
+      height: 14px;
+      background: white;
+      border-radius: 50%;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+      opacity: 1; /* ALWAYS VISIBLE */
+      pointer-events: none;
+      transition: transform 0.2s ease;
+    }
+    .timeline-track:active .timeline-thumb {
+      transform: translate(-50%, -50%) scale(1.2);
+    }
+
+    /* Global Mute/Unmute Button */
+    .global-mute-button {
+      position: fixed;
+      top: 50px;
+      right: 25px;
+      width: 50px;
+      height: 50px;
+      background: rgba(0, 0, 0, 0.7);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.3s ease;
+    }
+    .global-mute-button:hover {
+      background: rgba(0, 0, 0, 0.9);
+      border-color: rgba(255, 255, 255, 0.4);
+      transform: scale(1.1);
+    }
+    .global-mute-button:active {
+      transform: scale(0.95);
+    }
+    .global-mute-icon {
+      width: 24px;
+      height: 24px;
+      fill: white;
+    }
+    
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700&display=swap');
+    
+    /* hint for the first video */
+    .hint-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 25;
+      opacity: 1;
+      transition: opacity 0.5s ease;
+      backdrop-filter: blur(2px);
+    }
+    
+    .hint-overlay.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    .hint-content {
+      color: white;
+      font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+      background: rgba(255, 255, 255, 0.1);
+      padding: 16px 24px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(8px);
+      letter-spacing: 0.5px;
+    }
+    
+    .hint-icon {
+      width: 24px;
+      height: 24px;
+      fill: white;
+    }
+    
+    /* Global button shake animation */
+    .global-mute-button.shake {
+      background: rgba(220, 53, 69, 0.9) !important;
+      border-color: rgba(220, 53, 69, 0.8) !important;
+      animation: shakeError 0.6s ease-in-out;
+    }
+    
+    @keyframes shakeError {
+      0%, 100% { transform: scale(1) translateX(0); }
+      10% { transform: scale(1.1) translateX(-3px); }
+      20% { transform: scale(1.15) translateX(3px); }
+      30% { transform: scale(1.1) translateX(-3px); }
+      40% { transform: scale(1.15) translateX(3px); }
+      50% { transform: scale(1.1) translateX(-2px); }
+      60% { transform: scale(1.05) translateX(2px); }
+      70% { transform: scale(1.1) translateX(-1px); }
+      80% { transform: scale(1.05) translateX(1px); }
+      90% { transform: scale(1.02) translateX(0); }
+    }
+
+    /* Skeleton loader for initial load */
+    .skeleton {
+      background: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
+      background-size: 200% 100%;
+      animation: loading 1.5s infinite;
+    }
+    @keyframes loading {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    
+    /* ========== END CARD ========== */
+    .end-card.video-container {
+      position: relative;
+      height: 100vh;
+      height: 100dvh;
+      scroll-snap-align: start;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+    }
+    
+    .end-card .card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      text-align: center;
+      color: #fff;
+      font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      padding: 24px 20px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(6px);
+    }
+    
+    .end-card .icon {
+      width: 56px; height: 56px;
+      opacity: 0.9;
+    }
+    
+    .end-card .title {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: .2px;
+    }
+    
+    .end-card .sub {
+      font-size: 13px;
+      opacity: .75;
+    }
+    
+    .end-card .refresh-btn {
+      margin-top: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    
+    .end-card .refresh-btn:active {
+      transform: scale(0.98);
+    }
+    
+    /* Optional: hide global mute button on end card for a cleaner look */
+    body.at-end #globalMuteButton {
+      opacity: 0; pointer-events: none;
+      transition: opacity .2s ease;
+    }
+  </style>
+</head>
+<body>
+  <div id="feed"></div>
+  
+  <!-- Global Mute/Unmute Button -->
+  <div id="globalMuteButton" class="global-mute-button">
+    <svg class="global-mute-icon" viewBox="0 0 24 24">
+      <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+    </svg>
+  </div>
+
+  <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js');
+  }
+  (function() {
+    'use strict';
+    
+    // Enhanced Configuration
+    const CONFIG = {
+      VIDEOS_JSON: 'https://so9ic.github.io/video-api/videos.json',
+      INITIAL_LOAD: 3,
+      BUFFER_AHEAD: 2,
+      BUFFER_BEHIND: 1,
+      INTERSECTION_THRESHOLD: 0.75,
+      SCROLL_DEBOUNCE: 100,
+      PRELOAD_DISTANCE: 1,
+      MAX_RETRY_ATTEMPTS: 3,
+      RETRY_DELAY: 500
+    };
+
+    // Enhanced State Management
+    const state = {
+      videos: [],
+      currentIndex: 0,
+      globalMuted: true,
+      containers: new Map(),
+      bufferedVideos: new Set(),
+      loadingQueue: new Set(),
+      observedContainers: new Set(),
+      activeVideo: null,
+      isInitialized: false,
+      observer: null,
+      lastScrollTime: 0,
+      isUserScrubbing: false,
+      userAudioUnlocked: false,
+      pendingUnmute: false, // remember user wants sound even if one element was force-muted
+
+    };
+
+    // DOM references
+    const feed = document.getElementById('feed');
+    const globalMuteButton = document.getElementById('globalMuteButton');
+    
+    
+    let wakeLock = null;
+    
+    async function requestWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+          console.log('🔋 Screen Wake Lock active');
+    
+          // Re-acquire on visibility change
+          document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible') {
+              wakeLock = await navigator.wakeLock.request('screen');
+            }
+          });
+        } else {
+          console.warn('Wake Lock API not supported on this browser.');
+        }
+      } catch (err) {
+        console.error(`Wake Lock failed: ${err.name}, ${err.message}`);
+      }
+    }
+
+
+    // Enhanced Utility Functions
+    function shuffleArray(array) {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+    
+    // WebAudio unlock (optional but very helpful across retries)
+    let __audioCtx = null;
+    function unlockAudioByUserGesture() {
+      if (state.userAudioUnlocked) return;
+      try {
+        __audioCtx = __audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+        if (__audioCtx.state === 'suspended') __audioCtx.resume();
+        state.userAudioUnlocked = (__audioCtx.state === 'running');
+        // No need to connect the <video> elements; just having a resumed context
+        // often satisfies Chrome's user-gesture requirement for programmatic audio.
+      } catch (_) {}
+    }
+
+    function normalizePath(path) {
+      if (!path) return '';
+      if (path.startsWith('http://') || path.startsWith('https://')) return path;
+      if (path.startsWith('/')) return path;
+      path = path.replace(/^\.?\/?/, '');
+      if (path.startsWith('public/')) path = path.replace(/^public\//, '');
+      if (!path.startsWith('videos/')) path = 'videos/' + path;
+      return '/' + path;
+    }
+
+    // Create sound icon SVGs
+    function createSoundIcon(muted) {
+      if (muted) {
+        return `<svg class="sound-icon" viewBox="0 0 24 24">
+          <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+        </svg>`;
+      } else {
+        return `<svg class="sound-icon" viewBox="0 0 24 24">
+          <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+        </svg>`;
+      }
+    }
+
+    // Update global mute button
+    function updateGlobalMuteButton() {
+      const icon = globalMuteButton.querySelector('.global-mute-icon');
+      if (state.globalMuted) {
+        icon.innerHTML = `<path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>`;
+      } else {
+        icon.innerHTML = `<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>`;
+      }
+    }
+
+    // Global mute toggle function
+    function toggleGlobalMute() {
+      state.globalMuted = !state.globalMuted;
+      
+      // If user is unmuting, mark intent and unlock audio
+      if (!state.globalMuted) {
+        state.pendingUnmute = true;
+        unlockAudioByUserGesture();
+      }
+      
+      // Dismiss hint if user manually toggles
+      dismissHint();
+      
+      console.log(`🔊 Global mute toggled: ${state.globalMuted ? 'MUTED' : 'UNMUTED'}`);
+      
+      // Update all videos
+      document.querySelectorAll('video').forEach(v => {
+        v.__forceMuted = false; // clear any element-only forced mute
+        v.muted = state.globalMuted;
+        // If we just unmuted, try to actually unmute now
+        if (!state.globalMuted) {
+          try { v.muted = false; } catch(_) {}
+        }
+      });
+      
+      // Update global button
+      updateGlobalMuteButton();
+      
+      // Save preference
+      try {
+        localStorage.setItem('feed_muted', String(state.globalMuted));
+      } catch(e) {}
+    }
+    
+    function tryUnmuteActiveAndNeighbors() {
+      if (state.globalMuted) return;
+      const indices = [state.currentIndex, state.currentIndex + 1, state.currentIndex - 1]
+        .filter(i => i >= 0 && i < state.videos.length);
+      indices.forEach(i => {
+        const c = state.containers.get(i);
+        if (!c) return;
+        const v = c.querySelector('video');
+        if (!v) return;
+        v.__forceMuted = false;
+        try { v.muted = false; } catch(_) {}
+        // If a browser required muted start earlier, now we have a gesture; attempt to ensure audio
+        if (v.paused) {
+          // best-effort; ignore errors
+          v.play().catch(()=>{});
+        }
+      });
+    }
+
+
+    // Auto-observe new containers
+    function observeContainer(container) {
+      if (!container || !state.observer) return;
+      
+      const index = parseInt(container.dataset.index);
+      if (state.observedContainers.has(index)) return;
+      
+      state.observer.observe(container);
+      state.observedContainers.add(index);
+      console.log(`👁️ Now observing container ${index + 1}`);
+    }
+
+    // Enhanced Background Buffering System
+    async function bufferVideo(index) {
+      if (index < 0 || index >= state.videos.length) return false;
+      if (state.bufferedVideos.has(index) || state.loadingQueue.has(index)) return false;
+
+      state.loadingQueue.add(index);
+      
+      try {
+        const container = state.containers.get(index);
+        if (!container) return false;
+
+        const video = container.querySelector('video');
+        if (!video || video.src) return false;
+
+        console.log(`🔄 Background buffering video ${index + 1}`);
+        
+        video.src = state.videos[index];
+        // ✅ FIXED: Only load metadata + first few seconds
+        if (Math.abs(index - state.currentIndex) <= 1) {
+          video.preload = 'metadata'; // Active + neighbors: minimal preload
+        } else {
+          video.preload = 'none';     // Distant videos: no preload
+        }
+        video.muted = state.globalMuted;
+        
+        return new Promise((resolve) => {
+          let resolved = false;
+          
+          const onCanPlayThrough = () => {
+            if (resolved) return;
+            resolved = true;
+            
+            console.log(`✅ Video ${index + 1} fully buffered`);
+            state.bufferedVideos.add(index);
+            state.loadingQueue.delete(index);
+            
+            video.removeEventListener('canplaythrough', onCanPlayThrough);
+            video.removeEventListener('error', onError);
+            video.removeEventListener('loadeddata', onLoadedData);
+            
+            resolve(true);
+          };
+
+          const onLoadedData = () => {
+            if (resolved) return;
+            console.log(`📊 Video ${index + 1} metadata loaded`);
+          };
+
+          const onError = (e) => {
+            if (resolved) return;
+            resolved = true;
+            
+            console.error(`❌ Buffer failed for video ${index + 1}:`, e);
+            state.loadingQueue.delete(index);
+            
+            video.removeEventListener('canplaythrough', onCanPlayThrough);
+            video.removeEventListener('error', onError);
+            video.removeEventListener('loadeddata', onLoadedData);
+            
+            resolve(false);
+          };
+
+          video.addEventListener('canplaythrough', onCanPlayThrough, { once: true });
+          video.addEventListener('loadeddata', onLoadedData, { once: true });
+          video.addEventListener('error', onError, { once: true });
+          
+          video.load();
+          
+          setTimeout(() => {
+            if (!resolved) {
+              resolved = true;
+              state.loadingQueue.delete(index);
+              console.warn(`⏰ Buffer timeout for video ${index + 1}`);
+              resolve(false);
+            }
+          }, 10000);
+        });
+
+      } catch (error) {
+        console.error(`Error buffering video ${index}:`, error);
+        state.loadingQueue.delete(index);
+        return false;
+      }
+    }
+
+    // Smart buffering trigger
+    // Enhanced triggerSmartBuffering with data-conscious loading
+    async function triggerSmartBuffering(currentIndex) {
+      // Only buffer next video (most important)
+      const nextIndex = currentIndex + 1;
+      if (nextIndex < state.videos.length) {
+        setTimeout(() => bufferVideo(nextIndex), 100);
+      }
+      
+      // Only buffer previous if user is scrolling backwards frequently  
+      const prevIndex = currentIndex - 1;
+      if (prevIndex >= 0 && shouldBufferPrevious()) {
+        setTimeout(() => bufferVideo(prevIndex), 500);
+      }
+    }
+    
+    // Helper to detect if user scrolls backwards often
+    function shouldBufferPrevious() {
+      // Simple heuristic: only if user has scrolled back recently
+      const recentScrollbacks = state.recentScrollbacks || 0;
+      return recentScrollbacks > 2;
+    }
+
+    // ENHANCED: Always visible scrubable timeline creation
+    function createScrubableTimeline(video, container) {
+      const timelineContainer = document.createElement('div');
+      timelineContainer.className = 'timeline-container';
+
+      const timelineTrack = document.createElement('div');
+      timelineTrack.className = 'timeline-track';
+
+      const timelineProgress = document.createElement('div');
+      timelineProgress.className = 'timeline-progress';
+
+      const timelineThumb = document.createElement('div');
+      timelineThumb.className = 'timeline-thumb';
+
+      timelineTrack.appendChild(timelineProgress);
+      timelineTrack.appendChild(timelineThumb);
+      timelineContainer.appendChild(timelineTrack);
+
+      // Scrubbing functionality
+      let isDragging = false;
+
+      function updateProgress() {
+        if (video.duration && !isDragging) {
+          const percent = (video.currentTime / video.duration) * 100;
+          timelineProgress.style.width = percent + '%';
+          timelineThumb.style.left = percent + '%';
+        }
+      }
+
+      function seekToPosition(clientX) {
+        const rect = timelineTrack.getBoundingClientRect();
+        const percent = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+        const newTime = percent * video.duration;
+        
+        if (isFinite(newTime)) {
+          video.currentTime = newTime;
+          timelineProgress.style.width = (percent * 100) + '%';
+          timelineThumb.style.left = (percent * 100) + '%';
+        }
+      }
+
+      // Mouse events
+      timelineTrack.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        isDragging = true;
+        state.isUserScrubbing = true;
+        seekToPosition(e.clientX);
+        
+        const handleMouseMove = (e) => {
+          seekToPosition(e.clientX);
+        };
+        
+        const handleMouseUp = () => {
+          isDragging = false;
+          state.isUserScrubbing = false;
+          document.removeEventListener('mousemove', handleMouseMove);
+          document.removeEventListener('mouseup', handleMouseUp);
+        };
+        
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+      });
+
+      // Touch events
+      timelineTrack.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        isDragging = true;
+        state.isUserScrubbing = true;
+        const touch = e.touches[0];
+        seekToPosition(touch.clientX);
+        
+        const handleTouchMove = (e) => {
+          const touch = e.touches[0];
+          seekToPosition(touch.clientX);
+        };
+        
+        const handleTouchEnd = () => {
+          isDragging = false;
+          state.isUserScrubbing = false;
+          document.removeEventListener('touchmove', handleTouchMove);
+          document.removeEventListener('touchend', handleTouchEnd);
+        };
+        
+        document.addEventListener('touchmove', handleTouchMove, { passive: false });
+        document.addEventListener('touchend', handleTouchEnd);
+      });
+
+      video.addEventListener('timeupdate', updateProgress);
+      video.addEventListener('loadedmetadata', updateProgress);
+
+      return timelineContainer;
+    }
+
+    // Enhanced video container creation
+    function createVideoContainer(videoSrc, index) {
+      const container = document.createElement('div');
+      container.className = 'video-container';
+      container.dataset.index = index;
+
+      const loader = document.createElement('div');
+      loader.className = 'loader';
+      container.appendChild(loader);
+
+      const video = document.createElement('video');
+      video.playsInline = true;
+      video.muted = state.globalMuted;
+      video.loop = true;
+      // ✅ ENHANCED: Better progressive loading
+      if (Math.abs(index - state.currentIndex) === 0) {
+        video.preload = 'metadata';  // Current video: load metadata only
+        video.src = videoSrc;        // Set source immediately
+      } else if (Math.abs(index - state.currentIndex) === 1) {
+        video.preload = 'none';      // Adjacent: no preload until needed
+      } else {
+        video.preload = 'none';      // Distant: definitely no preload
+        // Don't even set src yet for distant videos
+      }
+      video.setAttribute('playsinline', '');
+      video.setAttribute('webkit-playsinline', '');
+      
+      video.addEventListener('loadeddata', () => {
+        // When the element re-loads source after a retry, keep the same intent
+        if (!state.globalMuted && !video.__forceMuted) {
+          try { video.muted = false; } catch(_) {}
+        } else {
+          video.muted = true;
+        }
+      });
+      
+      video.addEventListener('playing', () => {
+        // As soon as it starts, if user wants sound, try again
+        if (!state.globalMuted && video.__forceMuted) {
+          try {
+            video.muted = false;
+            video.__forceMuted = false;
+          } catch (_) {
+            state.pendingUnmute = true;
+          }
+        }
+      });
+      
+      // If the active video gets paused unexpectedly while it is still the center card,
+      // try to resume it after a tiny delay.
+      video.addEventListener('pause', () => {
+        const containerEl = video.closest('.video-container');
+        if (!containerEl) return;
+        const idx = parseInt(containerEl.dataset.index, 10);
+        if (idx === state.currentIndex) {
+          setTimeout(() => {
+            if (state.activeVideo === video && video.paused) {
+              playVideo(video).catch(()=>{});
+            }
+          }, 80);
+        }
+      });
+
+      // Enhanced always-visible scrubable timeline
+      const timeline = createScrubableTimeline(video, container);
+      container.appendChild(timeline);
+
+      video.addEventListener('waiting', () => container.classList.add('loading'));
+      video.addEventListener('canplay', () => container.classList.remove('loading'));
+      video.addEventListener('playing', () => container.classList.remove('loading'));
+
+      video.addEventListener('error', (e) => {
+        console.error(`Video ${index} error:`, e);
+        container.classList.remove('loading');
+      });
+
+      container.appendChild(video);
+      
+      // MODIFIED: Tap area excludes the timeline (bottom 50px now)
+      const tapArea = document.createElement('div');
+      tapArea.className = 'tap-area';
+      tapArea.style.bottom = '50px'; // Leave space for enhanced timeline
+      tapArea.addEventListener('click', handleTapToToggleSound);
+      container.appendChild(tapArea);
+
+      // Sound indicator (for tap feedback)
+      const soundIndicator = document.createElement('div');
+      soundIndicator.className = 'sound-indicator';
+      soundIndicator.innerHTML = createSoundIcon(state.globalMuted);
+      container.appendChild(soundIndicator);
+      
+      // Show hint for first video only
+      if (index === 0) {
+        // Delay hint to ensure container is properly mounted
+        setTimeout(() => {
+          showFirstVideoHint();
+        }, 500);
+      }
+
+      return container;
+    }
+
+    // Create the "You're all caught up" card
+    function createCaughtUpCard(index) {
+      const container = document.createElement('div');
+      container.className = 'video-container end-card';
+      container.dataset.index = index;
+      container.dataset.type = 'end';
+    
+      const card = document.createElement('div');
+      card.className = 'card';
+    
+      card.innerHTML = `
+        <svg class="icon" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="11" stroke="white" stroke-opacity="0.5" />
+          <path d="M7 12.5l3.2 3.2L17.5 8.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="title">You're all caught up</div>
+        <div class="sub">No more videos for now</div>
+        <button class="refresh-btn" id="refreshFeedBtn">Refresh</button>
+      `;
+    
+      container.appendChild(card);
+    
+      // Refresh action
+      card.querySelector('#refreshFeedBtn').addEventListener('click', () => {
+        try {
+          // simple and reliable
+          window.location.reload();
+        } catch (_) {
+          // fallback: hard reload
+          window.location.href = window.location.href;
+        }
+      });
+    
+      return container;
+    }
+    
+    // Append the end card as the last "item"
+    function appendCaughtUpCard() {
+      state.endIndex = state.videos.length; // end card comes after the last video
+      if (state.containers.has(state.endIndex)) return;
+    
+      const endCard = createCaughtUpCard(state.endIndex);
+      state.containers.set(state.endIndex, endCard);
+      feed.appendChild(endCard);
+    }
+
+    
+    
+    // Handle tap to toggle sound (also updates global button)
+    function handleTapToToggleSound(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      toggleGlobalMute();
+      
+      // Show animation
+      const container = e.target.closest('.video-container');
+      const indicator = container.querySelector('.sound-indicator');
+      indicator.innerHTML = createSoundIcon(state.globalMuted);
+      indicator.classList.remove('show');
+      void indicator.offsetWidth;
+      indicator.classList.add('show');
+    }
+
+    // Enhanced play video with retry logic
+    async function playVideo(video, retryCount = 0) {
+      if (!video || video.paused === false) return true;
+    
+      // Abort if this video is no longer the active one
+      if (state.activeVideo && video !== state.activeVideo) return false;
+
+      // Decide if this element should start muted
+      const shouldBeMuted = state.globalMuted || video.__forceMuted === true;
+      video.muted = shouldBeMuted;
+    
+      try {
+        // Don't reset currentTime here — avoids policy re-checks mid-session
+        await video.play();
+    
+        // If global intent is unmuted but this element started muted, try to unmute now
+        if (!state.globalMuted && video.muted) {
+          try {
+            video.muted = false;
+            video.__forceMuted = false;
+          } catch (_) {
+            // Browser still blocking; remember to unmute later
+            state.pendingUnmute = true;
+            video.__forceMuted = true;
+          }
+        }
+    
+        return true;
+      } catch (error) {
+        const notAllowed = (error && (error.name === 'NotAllowedError' || error.code === 0));
+    
+        // If autoplay blocked sound but user wants sound → temp force mute this element only
+        if (notAllowed && !state.globalMuted && retryCount < CONFIG.MAX_RETRY_ATTEMPTS) {
+          video.__forceMuted = true;
+          video.muted = true;
+          try {
+            await video.play();
+            return true;
+          } catch (_) {
+            await new Promise(r => setTimeout(r, CONFIG.RETRY_DELAY));
+            return playVideo(video, retryCount + 1);
+          }
+        }
+    
+        // Retry on other transient errors (network/buffer) without touching global mute
+        if (retryCount < CONFIG.MAX_RETRY_ATTEMPTS) {
+          await new Promise(r => setTimeout(r, CONFIG.RETRY_DELAY));
+          return playVideo(video, retryCount + 1);
+        }
+    
+        console.error(`❌ playVideo failed permanently`, error);
+        return false;
+      }
+    }
+
+    function stopVideo(video) {
+      if (!video) return;
+      try {
+        video.pause();
+        video.currentTime = 0;
+      } catch(e) {}
+    }
+
+    function loadVideosInRange() {
+      const start = Math.max(0, state.currentIndex - CONFIG.BUFFER_BEHIND);
+      const end = Math.min(state.videos.length - 1, state.currentIndex + CONFIG.BUFFER_AHEAD);
+      
+      console.log(`🔄 Loading range: ${start}-${end} (current: ${state.currentIndex})`);
+      
+      for (let i = start; i <= end; i++) {
+        if (!state.containers.has(i)) {
+          const container = createVideoContainer(state.videos[i], i);
+          state.containers.set(i, container);
+          
+          insertContainerInOrder(container, i);
+          observeContainer(container);
+          
+          if (Math.abs(i - state.currentIndex) <= 1) {
+            setTimeout(() => bufferVideo(i), Math.abs(i - state.currentIndex) * 300);
+          }
+        }
+      }
+      
+      console.log(`📊 Total containers: ${state.containers.size}, Observed: ${state.observedContainers.size}`);
+    }
+
+    function insertContainerInOrder(container, index) {
+      const existingContainers = Array.from(feed.children);
+      
+      if (!existingContainers.length) {
+        feed.appendChild(container);
+        return;
+      }
+      
+      let insertBefore = null;
+      for (const existing of existingContainers) {
+        const existingIndex = parseInt(existing.dataset.index);
+        if (existingIndex > index) {
+          insertBefore = existing;
+          break;
+        }
+      }
+      
+      if (insertBefore) {
+        feed.insertBefore(container, insertBefore);
+      } else {
+        feed.appendChild(container);
+      }
+    }
+    
+    // --- CENTER-LOCK ACTIVE VIDEO CONTROLLER (Instagram-like) ---
+    let _scrollRaf = null;
+    let _lastActiveIndex = 0;
+    const CENTER_HYSTERESIS_PX = 40; // prevents rapid flip-flops near boundaries
+    
+    function getIndexAtViewportCenter() {
+      if (!state.containers.size) return state.currentIndex;
+    
+      const feedRect = feed.getBoundingClientRect();
+      const centerY = feedRect.top + (feed.clientHeight / 2);
+    
+      // Search only nearby to reduce cost
+      const indices = Array.from(state.containers.keys()).sort((a,b)=>a-b);
+      let bestIndex = state.currentIndex;
+      let bestDist = Infinity;
+    
+      for (const i of indices) {
+        const el = state.containers.get(i);
+        if (!el) continue;
+        const r = el.getBoundingClientRect();
+        // If the center line sits within the element, that element wins immediately
+        if (centerY >= r.top && centerY <= r.bottom) {
+          return i;
+        }
+        // Otherwise track closest center as a fallback
+        const elCenter = (r.top + r.bottom) / 2;
+        const dist = Math.abs(centerY - elCenter);
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestIndex = i;
+        }
+      }
+      return bestIndex;
+    }
+    
+    function setActiveIndex(newIndex, reason = '') {
+      if (typeof newIndex !== 'number') return;
+    
+      // Hysteresis: only switch if the new card clearly "wins"
+      if (newIndex !== state.currentIndex) {
+        const current = state.containers.get(state.currentIndex);
+        const next = state.containers.get(newIndex);
+        if (current && next) {
+          const feedRect = feed.getBoundingClientRect();
+          const centerY = feedRect.top + (feed.clientHeight / 2);
+          const cRect = current.getBoundingClientRect();
+          const nRect = next.getBoundingClientRect();
+          const cCenter = (cRect.top + cRect.bottom) / 2;
+          const nCenter = (nRect.top + nRect.bottom) / 2;
+          const cDist = Math.abs(centerY - cCenter);
+          const nDist = Math.abs(centerY - nCenter);
+          // Require the next to be meaningfully closer than the current
+          if (nDist + CENTER_HYSTERESIS_PX >= cDist) {
+            return; // do not switch yet
+          }
+        }
+      }
+    
+      if (newIndex === state.currentIndex) {
+        const currentContainer = state.containers.get(state.currentIndex);
+        if (currentContainer) {
+          const activeVid = currentContainer.querySelector('video');
+      
+          // Pause other videos
+          document.querySelectorAll('video').forEach(v => {
+            if (v !== activeVid) { try { v.pause(); } catch(_) {} }
+          });
+      
+          // If the active video is paused (unexpectedly), try to resume it.
+          if (activeVid && activeVid.paused) {
+            // best-effort resume — don't block anything if browser refuses.
+            playVideo(activeVid).catch(()=>{});
+          }
+        }
+        return;
+      }
+    
+      state.currentIndex = newIndex;
+      _lastActiveIndex = newIndex;
+    
+      // Play the new active, pause the rest
+      updateActiveVideo();           // your existing function
+      loadVideosInRange();           // already present, keeps DOM tight
+      triggerSmartBuffering(newIndex);
+      // console.log('Active set to', newIndex, reason);
+    }
+    
+    function evalActiveFromCenter() {
+      _scrollRaf = null;
+    
+      // Keep “sticky” current if the center line is between two cards
+      const idx = getIndexAtViewportCenter();
+      setActiveIndex(idx, 'centerline');
+    }
+    
+    function onFeedScroll() {
+      if (_scrollRaf) return;
+      _scrollRaf = requestAnimationFrame(evalActiveFromCenter);
+    }
+    
+    function attachCenterLock() {
+      feed.addEventListener('scroll', onFeedScroll, { passive: true });
+      window.addEventListener('resize', onFeedScroll, { passive: true });
+      // Run once after first render
+      requestAnimationFrame(evalActiveFromCenter);
+    }
+    
+    // Hard guard (with a short grace window): if any non-active <video> starts, pause it.
+    // small delay prevents races when we are switching active videos.
+    // Hard guard (with a short grace window): if any non-active <video> starts, pause it.
+    // small delay prevents races when we are switching active videos.
+    document.addEventListener('play', (e) => {
+      const v = e.target;
+      if (v && v.tagName === 'VIDEO') {
+        const cont = v.closest('.video-container');
+        if (!cont) return;
+        const idx = parseInt(cont.dataset.index, 10);
+    
+        if (idx !== state.currentIndex) {
+          // wait a short tick — this prevents a race where a newly-starting video
+          // is about to become the active one, but state.currentIndex hasn't settled yet.
+          setTimeout(() => {
+            if (idx !== state.currentIndex) {
+              try { v.pause(); } catch(_) {}
+            }
+          }, 40);
+        }
+      }
+    }, true);
+
+    function setupIntersectionObserver() {
+      if (state.observer) {
+        state.observer.disconnect();
+        state.observedContainers.clear();
+      }
+    
+      state.observer = new IntersectionObserver((entries) => {
+        // Buffer containers as they come into view, but do NOT change active here.
+        let bestIndex = null;
+        let bestRatio = 0;
+    
+        entries.forEach(entry => {
+          const index = parseInt(entry.target.dataset.index, 10);
+    
+          // Opportunistic buffering for anything getting visible
+          if (entry.isIntersecting) {
+            if (!state.bufferedVideos.has(index)) {
+              bufferVideo(index);
+            }
+            if (entry.intersectionRatio > bestRatio) {
+              bestRatio = entry.intersectionRatio;
+              bestIndex = index;
+            }
+          }
+        });
+    
+        // Preload neighbors of the most visible one (helps ahead-of-time)
+        if (bestIndex != null) {
+          triggerSmartBuffering(bestIndex);
+        }
+    
+        // Active selection is handled by center-lock; do nothing here.
+      }, {
+        root: feed,
+        threshold: [0.1, 0.3, 0.5, 0.7, 0.9],
+        rootMargin: '0px'
+      });
+    
+      state.containers.forEach((container) => observeContainer(container));
+    
+      // console.log(`👁️ IO ready (buffer-only) for ${state.observedContainers.size} containers`);
+    }
+
+    async function updateActiveVideo() {
+      console.log(`🔄 Updating active video to index ${state.currentIndex}`);
+      
+      if (state.activeVideo) {
+        stopVideo(state.activeVideo);
+      }
+      
+      const currentContainer = state.containers.get(state.currentIndex);
+      
+      // If we're on the end card, pause everything and stop here
+      if (currentContainer && currentContainer.dataset.type === 'end') {
+        if (state.activeVideo) {
+          try { state.activeVideo.pause(); } catch(_) {}
+          state.activeVideo = null;
+        }
+        // optional: release wake lock when user hits the end
+        if (typeof releaseWakeLock === 'function') { releaseWakeLock(); }
+        document.body.classList.add('at-end'); // for cleaner UI (CSS above)
+        return;
+      } else {
+        document.body.classList.remove('at-end');
+      }
+      
+      if (currentContainer) {
+        const video = currentContainer.querySelector('video');
+        state.activeVideo = video;
+        
+        if (!state.bufferedVideos.has(state.currentIndex)) {
+          console.log(`⏳ Buffering video ${state.currentIndex + 1} before playing...`);
+          await bufferVideo(state.currentIndex);
+        }
+        
+        await playVideo(video);
+      } else {
+        console.warn(`⚠️ No container found for index ${state.currentIndex}`);
+      }
+    }
+
+    async function initializeAutoplay() {
+      if (state.isInitialized) return;
+      state.isInitialized = true;
+      
+      console.log('🎬 Initializing autoplay...');
+      
+      const firstContainer = state.containers.get(0);
+      if (firstContainer) {
+        const video = firstContainer.querySelector('video');
+        video.muted = true;
+        state.globalMuted = true;
+        updateGlobalMuteButton(); // Initialize button state
+        state.activeVideo = video;
+        
+        await bufferVideo(0);
+        await playVideo(video);
+        triggerSmartBuffering(0);
+      }
+    }
+
+    async function loadVideosList() {
+      try {
+        const response = await fetch(CONFIG.VIDEOS_JSON, { cache: 'no-store' });
+        if (!response.ok) throw new Error('Failed to load videos');
+        
+        const data = await response.json();
+        if (!Array.isArray(data) || !data.length) throw new Error('Invalid videos data');
+        
+        state.videos = shuffleArray(data.map(normalizePath).filter(Boolean));
+        
+        if (!state.videos.length) throw new Error('No videos found');
+        
+        console.log(`📋 Loaded ${state.videos.length} videos`);
+        
+      } catch (error) {
+        console.error('Error loading videos:', error);
+        feed.innerHTML = '<div style="color:white;padding:20px;text-align:center">Failed to load videos</div>';
+        throw error;
+      }
+    }
+    
+    // Create hint overlay for first video
+    function createHintOverlay() {
+      const overlay = document.createElement('div');
+      overlay.className = 'hint-overlay';
+      overlay.id = 'hintOverlay';
+      
+      const content = document.createElement('div');
+      content.className = 'hint-content';
+      content.textContent = 'Tap to unmute';
+      
+      overlay.appendChild(content);
+      
+      // Make overlay clickable to dismiss
+      overlay.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleGlobalMute();
+        dismissHint();
+      });
+      
+      return overlay;
+    }
+
+    
+    // Show hint on first video
+    function showFirstVideoHint() {
+      const firstContainer = state.containers.get(0);
+      if (!firstContainer) return;
+      
+      const existingHint = firstContainer.querySelector('#hintOverlay');
+      if (existingHint) return; // Already shown
+      
+      const hintOverlay = createHintOverlay();
+      firstContainer.appendChild(hintOverlay);
+      
+      // Auto-dismiss after 3 seconds
+      setTimeout(() => {
+        dismissHint();
+      }, 3000);
+      
+      console.log('💡 Showing first video hint');
+    }
+    
+    // Dismiss hint with fade animation
+    function dismissHint() {
+      const hintOverlay = document.getElementById('hintOverlay');
+      if (hintOverlay) {
+        hintOverlay.classList.add('fade-out');
+        setTimeout(() => {
+          if (hintOverlay.parentNode) {
+            hintOverlay.parentNode.removeChild(hintOverlay);
+          }
+        }, 500); // Match CSS transition duration
+      }
+    }
+    
+    // Shake global mute button (auto-mute feedback)
+    function shakeGlobalMuteButton() {
+      globalMuteButton.classList.add('shake');
+      
+      setTimeout(() => {
+        globalMuteButton.classList.remove('shake');
+      }, 600); // Match animation duration
+      
+      console.log('🔴 Global mute button shake animation triggered');
+    }
+
+    async function init() {
+      console.log('🚀 Initializing enhanced video feed with global controls...');
+      
+      // FIXED: Load saved mute preference
+      try {
+        const saved = localStorage.getItem('feed_muted');
+        if (saved !== null) state.globalMuted = saved === 'true';
+      } catch(e) {}
+      
+      // Initialize global mute button
+      updateGlobalMuteButton();
+      globalMuteButton.addEventListener('click', toggleGlobalMute);
+      
+      await loadVideosList();
+      loadVideosInRange();
+      
+      setTimeout(() => {
+        setupIntersectionObserver();
+      }, 100); 
+      // NEW: Center-lock controller for Instagram-like UX
+      attachCenterLock();
+      requestWakeLock();
+      // Add the "You're all caught up" end card
+      appendCaughtUpCard();
+      
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          if (state.activeVideo) stopVideo(state.activeVideo);
+        } else {
+          setTimeout(() => updateActiveVideo(), 100);
+        }
+      });
+      
+      const initAutoplayOnce = async () => {
+        await initializeAutoplay();
+        document.removeEventListener('click', initAutoplayOnce);
+        document.removeEventListener('touchstart', initAutoplayOnce);
+      };
+      
+      ['click','touchstart','keydown'].forEach(evt => {
+        document.addEventListener(evt, () => {
+          unlockAudioByUserGesture();
+          tryUnmuteActiveAndNeighbors();
+        });
+      });
+      
+      document.addEventListener('click', initAutoplayOnce, { once: true });
+      document.addEventListener('touchstart', initAutoplayOnce, { once: true });
+      
+      setTimeout(() => initializeAutoplay(), 200);
+      setTimeout(() => updateActiveVideo(), 500);
+      
+      // FIXED: Keyboard shortcuts
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'm' || e.key === 'M') {
+          toggleGlobalMute();
+        }
+      });
+      
+      console.log('✅ Enhanced video feed with global controls initialized successfully!');
+    }
+
+    window.__feedDebug = {
+      state,
+      toggleGlobalMute,
+      updateGlobalMuteButton,
+      bufferVideo,
+      triggerSmartBuffering,
+      playVideo,
+      observeContainer,
+      CONFIG
+    };
+
+    init().catch(console.error);
+  })();
+  </script>
+</body>
+</html>

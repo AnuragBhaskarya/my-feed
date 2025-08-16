@@ -1,0 +1,11 @@
+{
+  "name": "my-video-feed",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "node generateVideoList.js"
+  },
+  "type": "module",
+  "dependencies": {
+    "googleapis": "^155.0.0"
+  }
+}
