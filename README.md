@@ -31,7 +31,7 @@ Build your own scrollable, Instagram-like feed that plays videos stored in a pri
 │  Cloudflare Pages “player/”    │
 │  -  Fetch videos.json          │
 │  -  Shuffle order per session  │
-│  -  Smart buffer / auto-play  │
+│  -  Smart buffer / auto-play   │
 │  -  Global mute \& scrubber    │
 └────────────────────────────────┘
 
