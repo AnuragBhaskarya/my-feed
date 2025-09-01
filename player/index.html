@@ -445,27 +445,45 @@
     const globalMuteButton = document.getElementById('globalMuteButton');
     
     
+    // --- ROBUST WAKE LOCK MANAGER ---
     let wakeLock = null;
-    
-    async function requestWakeLock() {
-      try {
-        if ('wakeLock' in navigator) {
+
+    const acquireWakeLock = async () => {
+      if ('wakeLock' in navigator && document.visibilityState === 'visible') {
+        try {
+          // Check if a lock is already active
+          if (wakeLock !== null) return;
+          
           wakeLock = await navigator.wakeLock.request('screen');
-          console.log('🔋 Screen Wake Lock active');
-    
-          // Re-acquire on visibility change
-          document.addEventListener('visibilitychange', async () => {
-            if (wakeLock !== null && document.visibilityState === 'visible') {
-              wakeLock = await navigator.wakeLock.request('screen');
-            }
+          console.log('🔋 Screen Wake Lock Acquired.');
+          
+          wakeLock.addEventListener('release', () => {
+            console.log('🔌 Screen Wake Lock was released by the browser.');
+            wakeLock = null;
           });
-        } else {
-          console.warn('Wake Lock API not supported on this browser.');
+
+        } catch (err) {
+          console.error(`Wake Lock request failed: ${err.name} - ${err.message}`);
+          wakeLock = null;
         }
-      } catch (err) {
-        console.error(`Wake Lock failed: ${err.name}, ${err.message}`);
+      } else {
+        console.warn('Wake Lock API not supported or document not visible.');
       }
-    }
+    };
+
+    const releaseWakeLock = async () => {
+      if (wakeLock !== null) {
+        try {
+            await wakeLock.release();
+            console.log('✅ Screen Wake Lock Released.');
+        } catch (err) {
+            console.error(`Wake Lock release failed: ${err.name} - ${err.message}`);
+        } finally {
+            wakeLock = null;
+        }
+      }
+    };
+    // --- END OF WAKE LOCK MANAGER ---
 
 
     // Enhanced Utility Functions
@@ -973,6 +991,7 @@
       try {
         // Don't reset currentTime here — avoids policy re-checks mid-session
         await video.play();
+        acquireWakeLock(); // <<< WAKE LOCK ACQUIRED HERE
     
         // If global intent is unmuted but this element started muted, try to unmute now
         if (!state.globalMuted && video.muted) {
@@ -996,6 +1015,7 @@
           video.muted = true;
           try {
             await video.play();
+            acquireWakeLock(); // <<< WAKE LOCK ACQUIRED HERE
             return true;
           } catch (_) {
             await new Promise(r => setTimeout(r, CONFIG.RETRY_DELAY));
@@ -1019,6 +1039,7 @@
       try {
         video.pause();
         video.currentTime = 0;
+        releaseWakeLock(); // <<< WAKE LOCK RELEASED HERE
       } catch(e) {}
     }
 
@@ -1257,8 +1278,7 @@
           try { state.activeVideo.pause(); } catch(_) {}
           state.activeVideo = null;
         }
-        // optional: release wake lock when user hits the end
-        if (typeof releaseWakeLock === 'function') { releaseWakeLock(); }
+        releaseWakeLock(); // <<< RELEASE LOCK ON END CARD
         document.body.classList.add('at-end'); // for cleaner UI (CSS above)
         return;
       } else {
@@ -1407,16 +1427,20 @@
       setTimeout(() => {
         setupIntersectionObserver();
       }, 100); 
-      // NEW: Center-lock controller for Instagram-like UX
+
       attachCenterLock();
-      requestWakeLock();
-      // Add the "You're all caught up" end card
       appendCaughtUpCard();
       
+      // UPDATED: Robust visibility change handler
       document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
-          if (state.activeVideo) stopVideo(state.activeVideo);
+          if (state.activeVideo) {
+            stopVideo(state.activeVideo); // This will also release the lock
+          } else {
+            releaseWakeLock(); // Release lock if no video is active but tab is hidden
+          }
         } else {
+          // When returning to the tab, try to play the current video, which will re-acquire the lock.
           setTimeout(() => updateActiveVideo(), 100);
         }
       });
